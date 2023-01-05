@@ -164,21 +164,19 @@ def create_output_images(Rover):
     else:
         # Debugging mode was enabled
         # Show pipeline images
+        image = np.zeros_like(Rover.img[:, :, :])
+        image[80:, :, :] += Rover.img[80:, :, :]
         dst_size = 5
         bottom_offset = 6
-        source = np.float32([[19, 140],
-                             [303, 140],
-                             [200, 95],
-                             [120, 95]
-                             ])
-        destination = np.float32([[Rover.img.shape[1] / 2 - dst_size, Rover.img.shape[0] - bottom_offset],
-                                  [Rover.img.shape[1] / 2 + dst_size, Rover.img.shape[0] - bottom_offset],
-                                  [Rover.img.shape[1] / 2 + dst_size,
-                                   Rover.img.shape[0] - dst_size * 2 - bottom_offset],
-                                  [Rover.img.shape[1] / 2 - dst_size, Rover.img.shape[0] - dst_size * 2 - bottom_offset]
+        source = np.float32([[14, 140], [301, 140], [200, 96], [118, 96]])
+
+        destination = np.float32([[image.shape[1] / 2 - dst_size, image.shape[0] - bottom_offset],
+                                  [image.shape[1] / 2 + dst_size, image.shape[0] - bottom_offset],
+                                  [image.shape[1] / 2 + dst_size, image.shape[0] - dst_size * 2 - bottom_offset],
+                                  [image.shape[1] / 2 - dst_size, image.shape[0] - dst_size * 2 - bottom_offset]
                                   ])
         # Generate Warped image
-        warped = perspect_transform(Rover.img, source, destination, kernel_size=3)
+        warped = perspect_transform(Rover.img, source, destination)
         # Generate Colored Threshed image
         path_threshed = color_thresh_color_img(warped)
 
@@ -186,7 +184,9 @@ def create_output_images(Rover):
         threshed = color_thresh(warped)
         xpix, ypix = rover_coords(threshed)
         dist, angles = to_polar_coords(xpix, ypix)
-        mean_dir = np.mean(angles)
+        dist, angle = to_polar_coords(xpix, ypix)
+        nav_dists, nav_angles = divideConquer(image, source, destination, dist, angle, Rover)
+        mean_dir = np.mean(nav_angles)
         plt.figure()
         plt.plot(xpix, ypix, '.')
         plt.ylim(-160, 160)

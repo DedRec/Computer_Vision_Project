@@ -43,7 +43,7 @@ class RoverState():
     def __init__(self):
         self.toggle = 0  # used when stuck
         self.first_yaw = 0  # used when stuck
-        self.prev_angles = [0, 0] # Prev nav_angles
+        self.prev_angles = [0, 0]  # Prev nav_angles
         self.rot_yaw = 0  # used when stuck
         self.visited = 0  # used when stuck
         self.p_vis = []  # used for visited
@@ -95,8 +95,8 @@ class RoverState():
         self.steer_count = 0  # timer to go back after picking up a stone how long have i been on the same steering angle
         self.steer_prev = 0  # timer to go back after picking up a stone
 
-        self.max_steer_count= 200
-        self.max_pos_count = 40
+        self.max_steer_count = 200
+        self.max_pos_count = 500
 
 
 # Initialize our rover
@@ -120,7 +120,7 @@ def telemetry(sid, data):
         fps = frame_counter
         frame_counter = 0
         second_counter = time.time()
-    #print("Current FPS: {}".format(fps))
+    # print("Current FPS: {}".format(fps))
 
     if data:
         global Rover
@@ -141,7 +141,6 @@ def telemetry(sid, data):
             print(
                 f"\r |steer count |{str_cnt * '█' + '-' * (15 - str_cnt)}|  |pos count| {pos_cnt * '▮' + '▯' * (15 - pos_cnt)} |rock_found| {int(Rover.gold_flag == True) * '⚫'} |mode| {Rover.mode} |P_Visited| {Rover.p_vis} |t_Visited| {Rover.t_vis} |total visits| {len(Rover.t_vis)}",
                 end="\r", flush=True)
-
 
             # Create output images to send to server
             out_image_string1, out_image_string2 = create_output_images(Rover)
@@ -182,7 +181,7 @@ def telemetry(sid, data):
 
 @sio.on('connect')
 def connect(sid, environ):
-    #print("connect ", sid)
+    # print("connect ", sid)
     send_control((0, 0, 0), '', '')
     sample_data = {}
     sio.emit(
@@ -210,7 +209,7 @@ def send_control(commands, image_string1, image_string2):
 
 # Define a function to send the "pickup" command
 def send_pickup():
-    #print("Picking up")
+    # print("Picking up")
     pickup = {}
     sio.emit(
         "pickup",
@@ -234,16 +233,16 @@ if __name__ == '__main__':
 
     os.system('rm -rf IMG_stream/*')
     if args.image_folder != '':
-        #print("Creating image folder at {}".format(args.image_folder))
+        # print("Creating image folder at {}".format(args.image_folder))
         if not os.path.exists(args.image_folder):
             os.makedirs(args.image_folder)
         else:
             shutil.rmtree(args.image_folder)
             os.makedirs(args.image_folder)
-        #print("Recording this run ...")
+        # print("Recording this run ...")
     else:
         pass
-        #print("NOT recording this run ...")
+        # print("NOT recording this run ...")
 
     # wrap Flask application with socketio's middleware
     app = socketio.Middleware(sio, app)

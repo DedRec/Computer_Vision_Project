@@ -5,7 +5,7 @@ import random
 
 # Identify pixels above the threshold and
 # Returns a colored image with 3 color channels
-def color_thresh(img, rgb_thresh=(160, 160, 160), kernel_size=3):
+def color_thresh(img, rgb_thresh=(160, 160, 160), kernel_size=5):
     gimg = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
     # Create an array of zeros same xy size as img, but single channel
     color_select = np.zeros_like(img[:, :, 0])
@@ -26,10 +26,10 @@ def color_thresh(img, rgb_thresh=(160, 160, 160), kernel_size=3):
     # Return the binary image
     return color_select
 
-def color_thresh_color_img(img, rgb_thresh=(160, 160, 160), kernel_size=3):
+def color_thresh_color_img(img, rgb_thresh=(160, 160, 160), kernel_size=5):
     gimg = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
     # Create an array of zeros same xy size as img, but single channel
-    color_select = np.zeros_like(img[:, :, 0])
+    color_select = np.zeros_like(img[:, :, :])
 
     # Require that each pixel be above all three threshold values in RGB
     # above_thresh will contain a boolean array with "True" whenever threshold is met
@@ -105,7 +105,7 @@ def perspect_transform(img, src, dst):
     warped = cv2.warpPerspective(img, M, (img.shape[1], img.shape[0]))  # keep same size as input image
     mask = cv2.warpPerspective(np.ones_like(img[:,:,0]), M, (img.shape[1], img.shape[0]))
 
-    return warped, mask
+    return warped
 
 # Define a function to identify rocks
 def find_rocks(img,Rock_thresh_low=(100,100,0),Rock_thresh_high=(255,255,55)):
@@ -124,9 +124,9 @@ def divideConquer(image, source, destination,orgdist,organgle, Rover):
     image2 = np.zeros_like(image[:,:,:])
     image1[:,:160,:] += image[:,:160,:]
     image2[:,160:,:] += image[:,160:,:]
-    warped1, mask = perspect_transform(image1, source, destination) #wraped is the bird-eye view perspective
+    warped1 = perspect_transform(image1, source, destination) #wraped is the bird-eye view perspective
     threshed1 = color_thresh(warped1)
-    warped2, mask = perspect_transform(image2, source, destination) #wraped is the bird-eye view perspective
+    warped2 = perspect_transform(image2, source, destination) #wraped is the bird-eye view perspective
     threshed2 = color_thresh(warped2)
     xpix1, ypix1 = rover_coords(threshed1)
     dist1, angles1 = to_polar_coords(xpix1, ypix1)
@@ -150,6 +150,14 @@ def divideConquer(image, source, destination,orgdist,organgle, Rover):
     elif abs(np.mean(angles1)) < 0.4 and abs(np.mean(angles2)) > 0.6:
         ret_dist = orgdist
         ret_angle = organgle
+    elif abs(magnitude1-magnitude2)<150:
+        r = random.randint(1,2)
+        if r == 1:
+            ret_dist = dist1
+            ret_angle = angles1
+        else:
+            ret_dist = dist2
+            ret_angle = angles2
     elif magnitude1 > magnitude2:
         ret_dist = dist1
         ret_angle = angles1
@@ -181,18 +189,16 @@ def perception_step(Rover):
                               [image.shape[1] / 2 - dst_size, image.shape[0] - dst_size * 2 - bottom_offset]
                               ])
     # 2) Apply perspective transform
-    warped, mask = perspect_transform(image, source, destination)
+    warped = perspect_transform(image, source, destination)
 
 
     # 3) Apply color threshold to identify navigable terrain/obstacles/rock samples
     #thresh_obs = np.abs(np.float32(thresh_navig)-1)*mask
     rock_threshed = find_rocks(warped)  # find rock samples
-    tempmask = mask.copy()
-    cv2.circle(tempmask, (tempmask.shape[0], tempmask.shape[1]), 270, (0, 0, 0), -1)
-    tempmask = abs(tempmask - 1)
-    path_threshed = color_thresh(warped)*tempmask  # find only the navigatable path
+    
+    path_threshed = color_thresh(warped)  # find only the navigatable path
 
-    obs_threshed = np.abs(np.float32(path_threshed)-1)*mask
+    obs_threshed = 1 - color_thresh(warped, (85, 85, 85))
     # 4) Update Rover.vision_image (this will be displayed on left side of screen)
         # Example: Rover.vision_image[:,:,0] = obstacle color-thresholded binary image
         #          Rover.vision_image[:,:,1] = rock_sample color-thresholded binary image
